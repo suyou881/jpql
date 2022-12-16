@@ -11,6 +11,7 @@ public class Main {
         tx.begin();
 
         try {
+            /*
             Member member = new Member();
             member.setUsername("member1");
             member.setAge(10);
@@ -49,6 +50,46 @@ public class Main {
                     .setParameter("username", "member1")
                     .getSingleResult();
             System.out.println("singleResult = " + singleResult);
+*/
+
+            Member member = new Member();
+            member.setUsername("member1");
+            member.setAge(10);
+            em.persist(member);
+
+            em.flush();
+            em.clear();
+
+            //List로 반환된 result는 영속성 컨텍스트에서 관리가 될까 안될까? 된다!
+            //list로 반환된 모든 결과값이 다 관리된다.
+            List<Member> resultList = em.createQuery("select m from Member m", Member.class).getResultList();
+            Member findMember = resultList.get(0);
+            findMember.setAge(20);
+
+            //쿼리는 조인쿼리가 나간다. 그런데 좋은게 아님.
+            //join 같은 경우에는 성능에 많은 영향을 줄 수 있고, 튜닝할 수 있는 기회가 많기 때문에
+            //한눈에 보이게 쓰는게 좋다. 예측할 수 있다는 장점도 있다.
+//            em.createQuery("select m.team from Member m ", Team.class).getResultList();
+            em.createQuery("select m.team from Member m join m.team t", Team.class).getResultList();
+
+            //여러가지 값들을 가져오는 방법
+            //1. query  오브젝트로 반환한다. 반환 타입을 모르기 때문에
+            //오브젝트로 받으면 그 안에 오브젝트 배열로 되어있따. 따러서 오브젝트 배열로 캐스팅 시켜준다.
+            //2.아래 캐스팅 시켜주는 과정이 귀찮으면 List 제너릭 타입에 Object[]를 넣어주면 된다.
+            List<Object[]> scala_result = em.createQuery("select m.username, m.age from Member m").getResultList();
+//            Object o = scala_result.get(0);
+//            Object[] result = (Object[]) o;
+            Object[] result = scala_result.get(0);
+            System.out.println("username = " + result[0]);
+            System.out.println("age = " + result[1]);
+
+            //3. new 명령어로 조회하는
+            //패키지 명을 포함한 전체 클래스 명을 입력해줘야 하고 순서와 타입이 일치하는 생성자 필요
+            List<MemberDTO> dto_result = em.createQuery("select new jpql.MemberDTO( m.username, m.age) from Member m", MemberDTO.class)
+                    .getResultList();
+            MemberDTO memberDTO = dto_result.get(0);
+            System.out.println("username = " + memberDTO.getUsername());
+            System.out.println("age = " + memberDTO.getAge());
 
             tx.commit();
         } catch (Exception e) {
